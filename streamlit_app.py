@@ -56,10 +56,13 @@ canvas_result = st_canvas(
 
 if canvas_result.image_data is not None:
     pil_img = Image.fromarray((canvas_result.image_data[:, :, 0]).astype(np.uint8))
+    
     input_data, processed_img = preprocess(pil_img)
+    st.image(processed_img.resize((140, 140)).convert("RGB"), caption="28x28 Input", width=140)
+    
 
     pred, probs = predict(input_data)
 
     st.subheader(f"Prediction: **{pred}**")
     st.bar_chart(probs)
-    st.image(processed_img.resize((140, 140)).convert("RGB"), caption="28x28 Input", width=140)
+    

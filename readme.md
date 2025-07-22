@@ -3,7 +3,7 @@
 A simple neural network, trained completely from scratch, that predicts the digit you draw on a canvas. No deep learning frameworks — just Python, NumPy, and math. The web interface is built using [Streamlit](https://streamlit.io).
 
 
-The model attained a % accuracy during simple training using the database.
+The model attained a 91.8% accuracy during simple training using the database.
 ---
 
 ## ✨ What This Is
