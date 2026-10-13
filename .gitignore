@@ -1,1 +1,27 @@
-**/__pycache__
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+
+# Data files (downloaded/generated)
+data/train.csv
+data/test.csv
+
+# Model weights (generated after training)
+weights/model_weights.json
+
+# UV
+uv.lock
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
