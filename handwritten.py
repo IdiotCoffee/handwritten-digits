@@ -32,8 +32,7 @@ def softmax(predictions):
     m = max(predictions)
     temp = [math.exp(p - m) for p in predictions]
     total = sum(temp)
-    return [t / total for t in temp]
-
+    return [t/total for t in temp]
 
 def log_loss(activations, targets):
     """
@@ -51,9 +50,12 @@ def log_loss(activations, targets):
 
 
 # Hyperparameters
-epochs = 21
+epochs = 10
 batch_size = 128
 learning_rate = 0.1
+# Learning rate decay: multiply by decay_rate every decay_every epochs
+lr_decay_rate = 0.5
+lr_decay_every = 7
 # Network architecture: 784 input (28x28), 128 hidden, 10 output (digits 0-9)
 input_count, hidden_count, output_count = 784, 128, 10
 
@@ -69,9 +71,12 @@ b_h_o = [0 for _ in range(output_count)]
 """Training loop with mini-batch gradient descent."""
 
 for epoch in range(epochs):
+    epoch_loss = 0.0
+    num_batches = 0
+    print(f"starting epoch {epoch}/{epochs}")
     for labels, targets, inputs in reader.get_training_samples(batch_size):
         # --- Forward pass ---
-        # Hidden layer pre-activations: w_i_h @ input + b_i_h
+        # Hidden layer pre-activations: w_i_h @ input + b_i_h (@ stands for matrix multiplication)
         pred_h = [
             [
                 sum([w * a for w, a in zip(weights, inp)]) + bias
@@ -94,7 +99,9 @@ for epoch in range(epochs):
 
         # --- Loss computation ---
         cost = sum([log_loss(a, t) for a, t in zip(act_o, targets)]) / len(act_o)
-        print(f"epoch:{epoch} cost:{cost:.4f}")
+        epoch_loss += cost
+        num_batches += 1
+        # print(f"Epoch - {epoch} Batch - {num_batches}")
 
         # --- Backpropagation ---
         # Output layer error: derivative of cross-entropy + softmax = prediction - target
@@ -145,6 +152,14 @@ for epoch in range(epochs):
             for x in range(input_count):
                 w_i_h[y][x] -= learning_rate * w_i_h_d_transpose[y][x] / len(inputs)
             b_i_h[y] -= learning_rate * b_i_h_d[y] / len(inputs)
+
+    # --- Epoch summary ---
+    avg_loss = epoch_loss / num_batches if num_batches > 0 else 0
+    print(f"epoch: {epoch}  avg_loss: {avg_loss:.4f}  lr: {learning_rate:.4f}")
+
+    # Learning rate decay
+    if (epoch + 1) % lr_decay_every == 0:
+        learning_rate *= lr_decay_rate
 
     # --- Evaluation on test set after each epoch ---
     labels, targets, inputs = reader.get_test_samples()
