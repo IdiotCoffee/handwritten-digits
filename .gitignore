@@ -11,7 +11,7 @@ data/train.csv
 data/test.csv
 
 # Model weights (generated after training)
-weights/model_weights.json
+# weights/model_weights.json
 
 # UV
 uv.lock
