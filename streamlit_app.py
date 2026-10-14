@@ -122,29 +122,62 @@ def preprocess(img: Image.Image):
 
 # --- UI ---
 st.title("Handwritten Digit Recognizer")
-st.write("Draw a digit (0-9) below:")
+st.write("Draw a digit (0–9) in the canvas. The model expects MNIST-style input: centered, ~20×20 px, 2–3 px stroke width.")
 
-# Canvas for drawing
-canvas_result = st_canvas(
-    fill_color="black",  # White strokes on white background
-    stroke_width=25,
-    background_color="white",
-    height=280,
-    width=280,
-    drawing_mode="freedraw",
-    key="canvas",
-    return_image_data=True,
-)
+# Session state for canvas reset
+if "canvas_key" not in st.session_state:
+    st.session_state.canvas_key = 0
 
-if canvas_result.image_data is not None:
-    # Extract alpha channel as grayscale
-    pil_img = Image.fromarray((canvas_result.image_data[:, :, 0]).astype(np.uint8))
+col_left, col_right = st.columns([1, 1], gap="large")
 
-    input_data, processed_img = preprocess(pil_img)
-    # Display the 28x28 processed image (enlarged for visibility)
-    st.image(processed_img.resize((140, 140)).convert("RGB"), caption="28x28 Input", width=140)
+with col_left:
+    st.subheader("Draw here")
+    # Clear button
+    if st.button("🗑️ Clear canvas", use_container_width=True):
+        st.session_state.canvas_key += 1
+        st.rerun()
 
-    pred, probs = predict(input_data)
+    canvas_result = st_canvas(
+        fill_color="black",
+        stroke_width=25,
+        background_color="white",
+        height=280,
+        width=280,
+        drawing_mode="freedraw",
+        key=f"canvas_{st.session_state.canvas_key}",
+        return_image_data=True,
+    )
 
-    st.subheader(f"Prediction: **{pred}**")
-    st.bar_chart(probs)
+with col_right:
+    if canvas_result.image_data is not None:
+        # Extract alpha channel as grayscale
+        pil_img = Image.fromarray((canvas_result.image_data[:, :, 0]).astype(np.uint8))
+
+        input_data, processed_img = preprocess(pil_img)
+
+        # 28x28 preview with explanation
+        st.subheader("What the model sees (28×28)")
+        st.caption(
+            "Your 280×280 drawing is cropped to the digit, resized to 20×20 "
+            "keeping aspect ratio, centered in a 28×28 canvas, and normalized. "
+            "This matches the MNIST training format."
+        )
+        st.image(
+            processed_img.resize((140, 140), Image.NEAREST).convert("RGB"),
+            caption="28×28 input (enlarged 5×)",
+            width=140,
+        )
+
+        pred, probs = predict(input_data)
+
+        # Prediction
+        st.subheader(f"Prediction: **{pred}**")
+
+        # Probability chart with explanation
+        st.caption(
+            "Bar chart shows the model's confidence for each digit (0–9). "
+            "Higher bar = more confident. Values sum to 100%."
+        )
+        st.bar_chart({str(i): probs[i] for i in range(10)})
+    else:
+        st.info("Draw a digit on the left to see the prediction.")
