@@ -19,3 +19,10 @@ dev-dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.poetry]
+name = "handwritten-digits"
+version = "0.1.0"
+description = "Handwritten digit recognition using a neural network"
+authors = ["idiotcoffee"]
+package-mode = false
