@@ -66,9 +66,14 @@ def preprocess(img: Image.Image):
     Steps:
     1. Convert to grayscale
     2. Invert (MNIST has white digits on black background)
-    3. Resize to 28x28
-    4. Normalize to [0, 1]
-    5. Flatten to 784-element list
+    3. Find bounding box of drawn pixels
+    4. Crop to bounding box with padding
+    5. Resize to 20x20 keeping aspect ratio
+    6. Center in 28x28 canvas (MNIST style)
+    7. Normalize to [0, 1]
+    8. Flatten to 784-element list
+
+    This mimics how MNIST digits are centered and sized.
 
     Args:
         img: PIL Image from the canvas.
@@ -78,10 +83,41 @@ def preprocess(img: Image.Image):
     """
     img = img.convert("L")  # grayscale
     img = ImageOps.invert(img)  # white digits on black bg
-    img = img.resize((28, 28))  # MNIST size
-    arr = np.array(img).astype(np.float32)
-    arr /= 255.0  # normalize to [0, 1]
-    return arr.flatten().tolist(), img  # also return image for debugging
+    arr = np.array(img)
+
+    # Find bounding box of non-background pixels (threshold to avoid noise)
+    coords = np.argwhere(arr > 30)
+    if len(coords) == 0:
+        # Empty canvas - return blank 28x28
+        blank = np.zeros((28, 28), dtype=np.float32)
+        return blank.flatten().tolist(), Image.fromarray((blank * 255).astype(np.uint8))
+
+    y_min, x_min = coords.min(axis=0)
+    y_max, x_max = coords.max(axis=0)
+
+    # Add padding around the digit
+    pad = 4
+    y_min = max(0, y_min - pad)
+    x_min = max(0, x_min - pad)
+    y_max = min(arr.shape[0], y_max + pad)
+    x_max = min(arr.shape[1], x_max + pad)
+
+    # Crop to bounding box
+    cropped = arr[y_min:y_max, x_min:x_max]
+    cropped_img = Image.fromarray(cropped)
+
+    # Resize to fit in 20x20 keeping aspect ratio (MNIST digits are ~20x20 centered in 28x28)
+    cropped_img.thumbnail((20, 20), Image.Resampling.LANCZOS)
+
+    # Center in 28x28 canvas
+    final_img = Image.new("L", (28, 28), 0)
+    px = (28 - cropped_img.width) // 2
+    py = (28 - cropped_img.height) // 2
+    final_img.paste(cropped_img, (px, py))
+
+    # Normalize and flatten
+    arr = np.array(final_img).astype(np.float32) / 255.0
+    return arr.flatten().tolist(), final_img
 
 
 # --- UI ---
@@ -91,7 +127,7 @@ st.write("Draw a digit (0-9) below:")
 # Canvas for drawing
 canvas_result = st_canvas(
     fill_color="black",  # White strokes on white background
-    stroke_width=15,
+    stroke_width=25,
     background_color="white",
     height=280,
     width=280,
